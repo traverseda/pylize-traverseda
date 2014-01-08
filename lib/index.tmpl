@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=@(charset)">
+  <title>@(header_title)</title>
+  <link href="css/default.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" language="JavaScript1.2" src="pylize.js">
+</script>
+<noscript>
+<style type="text/css">
+<!--
+.delayed {
+    visibility: visible;
+}
+-->
+</style>
+</noscript>
+
+</head>
+<body onload="initPage()">
+
+<!-- start body area -->
+<div id="body">
+<!-- start page header -->
+<div id="header">
+  <div id="headercontents">
+    <table>
+      <tr>
+        <td class="logo">
+          @(logo_link)
+        <td>
+      </tr>
+    </table>
+  </div>
+</div>
+<!-- end page header -->
+
+<!-- start page content area -->
+<div id="content">
+  <div style="text-align:center">
+@(title)
+@(subtitle)
+@(author_link)<br>
+@(date)<br><br>
+    <span style="font-size:x-large;font-weight:bold"><a href="toc.html"
+      accesskey="s" id="link_next" tabindex="1"
+      @[if open_in_new_window]onClick="return openTOC();"@[end if]
+      >@(start_pres)</a></span><br>
+    <span style="font-size:x-small">[
+    @[if open_in_new_window]@
+    <a href="toc.html" id="link_same_window" tabindex="2">@(same_window)</a>
+    @[else]@
+    <a href="toc.html" id="link_new_window" tabindex="2" onClick="return openTOC();"
+      >@(new_window)</a>
+    @[end if]@
+    ]</span>
+  </div>
+</div>
+<!-- end page content area -->
+</div>
+<!-- end body (header + content)-->
+
+<!-- start page footer -->
+<div id="footer">
+</div>
+<!-- end page footer -->
+
+</body>
+</html>

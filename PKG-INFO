@@ -1,0 +1,26 @@
+Metadata-Version: 1.0
+Name: pylize
+Version: 1.3b
+Summary: On-Screen presentation generation tool
+Home-page: http://www.chrisarndt.de/en/software/pylize/
+Author: Christopher Arndt
+Author-email: chris.arndt@web.de
+License: GPL
+Download-URL: http://chrisarndt.de/en/software/pylize/download/pylize-1.2b.tar.bz2
+Description: 
+        pylize is a Python script that generates a set of HTML files that
+        make up an on-screen presentation from a master file. The HTML files
+        can be viewed with any CSS-aware browser. The master file contains
+        the text for all the slides and some additional information like
+        title, author etc. pylize can also create a template master file for
+        you.
+        
+Keywords: Presentation Slides HTML
+Platform: portable
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Multimedia :: Graphics :: Presentation
+Classifier: Topic :: Text Processing :: Markup :: HTML

@@ -1,0 +1,44 @@
+* Tue 02 Aug 2005 Christopher Arndt <chris.arndt@web.de>
+- put divs around header table in default template for future round borders
+- added "fancytable" class to default stylesheet
+- spiced up default stylesheet with colours
+- replaced logo
+
+* Sun 31 Jul 2005 Christopher Arndt <chris.arndt@web.de>
+- Option for processing the contents of each slide with EmPy
+- more refactoring
+- slight stylesheet improvements
+- new structure for navigation links as first step to make image buttons
+  possible
+
+* Sun 17 Jul 2005 Christopher Arndt <chris.arndt@web.de>
+- configurable accesskeys and JavaScript keyhandlers
+
+* Sat 09 Jul 2005 Christopher Arndt <chris.arndt@web.de>
+- fixed stupid bug that caused crash when trying to create new master template
+- new option to avoid fullscreen display
+
+* Tue 05 Jul 2005 Christopher Arndt <chris.arndt@web.de>
+- switched template system to empy
+- refactored code somewhat
+- fixed windows installation routine
+- fixed JavaScript keyboard event handling
+
+* Fri 12 Nov 2004 Christopher Arndt <chris.arndt@web.de>
+- cleaned up CSS
+- cleaned up templates
+- added spanish translation
+- added italian translation
+
+* Mon May 13 2002 Christopher Arndt <chris.arndt@web.de>
+- JavaScript navigation keys
+- delayed text (i.e. appears after hitting the spacebar)
+- slides without text show the title centred on slide
+
+* Sat May 04 2002 Christopher Arndt <chris.arndt@web.de>
+- allow inter-document links by setting the slide file name in h1 tags
+- split toc page if more than 10(default) sections
+- indent toc listing of sections with the same title
+- better installation script
+- some layout tweaks
+- fixed JavaScript code on index page

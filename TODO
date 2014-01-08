@@ -1,0 +1,27 @@
+- key bindings for navigation buttons and toc links - done
+- get language for presentation from master document (new meta tag?) - done
+- add 'searchpath' attribute to Presentation object:
+  a list of directories to search for initialization and template files
+  (instead of global variables) - done
+- generate <link rel="next|previous..."> header tags - done
+- tooltips with slide titles for navigation buttons - done
+- option for template name - done
+- parse id attributes of <h1> tags to set the filename of a slide
+  - done: used nested <a name="..."> instead. allows for inter-document links
+    using normal anchor links
+- splitting of toc if # of sections > 10 - done
+- option to link instead of copying auxiliary files - done
+- add nesting of TOC if slide titles are the same (use sub-title) - done
+- if no text on slide, put title centered on slide - done
+- use own template module instead the HTMLgen one - done: use empy instead
+- make accesskeys configurable - done
+
+- add meta tag for template
+- complete documentation
+  - supported meta tags
+  - Usage of script
+  - how it works
+- a 'pack' action to create a self-contained presentation archive
+- provide more usefull CSS classes (e.g. for code examples, picture galleries etc.)
+- make order of appearance of "delayed" tags controllable
+- replace regular expression based parsing mechanism with DOM based approach

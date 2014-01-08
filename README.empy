@@ -1,0 +1,30 @@
+IMPORTANT NOTICE:
+
+pylize comes with three template files in the "lib" directory called
+"all.tmpl", "default.tmpl" and "index.tmpl".
+
+From version 1.2b pylize uses the "empy" module as its template processing
+engine. Since templates for empy have a slightly different syntax, the
+templates distributed with pylize version 1.1b and earlier won't work anymore.
+
+This should not be a problem for you, if you have not changed the templates
+in the "lib" directory (i.e. the files with *.tmpl extension). Existing
+master ("all.html") files can be processed with the new templates without
+problems.
+
+But if you changed the templates itself, you have to adapt the variable
+placeholders in them to the new empy syntax.
+
+This means, you have to change every occurence of "{something}" in the
+templates to "@(something)".
+
+Luckily, I wrote a small python utility that does this job for you. It's
+called "fixtemplate.py" and is in the top directory of the distribution.
+
+To use it, just execute the following commandline:
+
+$ python fixtemplyte.py <yourtemplate.tmpl>
+
+where <yourtemplate.tmpl> is the template file in which you want to replace
+the variable placeholders. The file will be changed in place, so make a
+backup, if you don't trust me (always a good idea, anyway!).

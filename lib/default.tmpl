@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=@(charset)">
+  <title>@(header_title)</title>
+  <link href="css/default.css" rel="stylesheet" type="text/css" title="Talk">
+  <link rel="contents" href="toc.html" title="@(toc)">
+  <link rel="start" href="slide_01.html" title="@(start)">
+  @(rel_previous)
+  @(rel_next)
+
+<script type="text/javascript" language="JavaScript1.2" src="pylize.js">
+</script>
+<noscript>
+<style type="text/css">
+<!--
+.delayed {
+    visibility: visible;
+}
+-->
+</style>
+</noscript>
+
+<script type="text/javascript" language="JavaScript1.2" src="keymap.js">
+</script>
+
+</head>
+<body onload="initPage()">
+
+<!-- start body area -->
+<div id="body">
+<!-- start page header -->
+<div id="header">
+  <div id="headercontents">
+    <table>
+      <tr>
+        <td class="logo">
+          @(logo_link)
+        <td>
+        <td class="pagetitle">
+          @(pagetitle)
+          @(pagesubtitle)
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+<!-- end page header -->
+
+<!-- start page content area -->
+<div id="content">
+@(content)
+</div>
+<!-- end page content area -->
+</div>
+<!-- end body (header + content)-->
+
+<!-- start page footer -->
+<div id="footer">
+  <table class="footer">
+    <tr>
+      <td class="footer-info">
+        <i>@(title)</i>
+      </td>
+      <td width="33%" class="footer-count">
+@(progress_bar)
+      </td>
+      </td>
+        &nbsp;
+      </td>
+    </tr>
+    <tr>
+      <td class="footer-info">
+        @(author_link) (@(date))
+      </td>
+      <td class="footer-nav">
+@(nav_buttons)
+      </td>
+      <td class="footer-org" align="right">
+          @(org_link)
+      </td>
+    </tr>
+  </table>
+</div>
+<!-- end page footer -->
+
+</body>
+</html>

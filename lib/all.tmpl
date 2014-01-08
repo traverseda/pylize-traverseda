@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+
+  <!-- If you use characters other than ASCII, you must specify the
+    charset you use (e.g. 'ISO-8859-1' for western european languages)
+    and uncomment the following meta tag -->
+  @(charset)
+
+  <!-- the language used for some strings like "Table of contents", the
+    navigation buttons, etc. -->
+  <meta name="pylize.lang" content="@(lang)">
+
+  <!-- Meta information for the presentation. Present on all pages -->
+
+  <!-- Author of presentation -->
+  <meta name="author" content="@(author)">
+
+  <!-- Email address (without 'mailto:') here -->
+  <meta name="pylize.email" content="@(email)">
+
+  <!-- Name of organisation (university, firm, community etc.) -->
+  <meta  name="pylize.org" content="@(org)">
+
+  <!-- Url for the organisation -->
+  <meta name="pylize.url" content="@(url)">
+
+  <!-- Date of document creation (should be filled in automatically)
+    you can also fill in the value 'today' or 'last-modified'
+    to have the date calculated accordingly -->
+  <meta name="pylize.date" content="@(date)">
+
+  <!-- URL of a logo to show in the page headers -->
+  <meta name="pylize.logo" content="@(logo)">
+
+  <!-- The title of your presentation; separate a subtitle
+    with two dashes enclosed in spaces -- like this -->
+  <title>@(title) -- @(subtitle)</title>
+
+  <!-- End of meta data -->
+
+  <link rel="stylesheet" type="text/css" title="Talk"
+    href="css/talk-summary.css">
+
+</head>
+<body>
+<!-- Insert document content here -->
+<!-- Example: to process example remove comment markers here and at the end
+
+<p>Everything before the first &lt;h1&gt; tag (like this paragraph) is
+considered to be the abstract of your presentation. It is rendered with a
+heading depending on the language (i.e. 'Summary' in English) and is
+enclosed in a &lt;div class="abstract"&gt; block. You can change it's
+appearance in the stylesheet.<p>
+
+<p>(Still in the abstract) Every slide should have a title and, optionally, a
+subtitle. You define them with a &lt;h1&gt; tag, resp. &lt;h2&gt;. This input
+file is split into slides at every occurence of an &lt;h1&gt; tag. This means,
+for the  headings on your slide you have to use the &lt;h3&gt; tag.<p>
+
+<h1>My First Slide</h1>
+<h2>or: "Look, Ma, no hands!"</h2>
+
+<p>Although the subtitle can appear anywhere between two &lt;h1&gt; tags, you
+should place it immediately after the preceding &lt;h1&gt; tag, just to make
+things more readable.</p>
+
+<h1>Another Slide</h1>
+<h3>Some formattings</h3>
+<p>You can use the usual HTML formatting tags on your slide, just remember
+that the text should be viewable on the screen without scrolling.</p>
+
+<p>You can have:
+<ul>
+  <li>bulleted lists</li>
+  <li>links to <a href="all.html">other documents</a></li>
+  <li><i>italic</i>, <b>bold</b> and <span style="color:red">coloured</span>
+    text</li>
+  <li>... and much more</li>
+</ul>
+</p>
+
+<h1>All good things come in three</h1>
+<h2>Epilogue</h2>
+
+<p>This small example should get you started. If you want to know more about HTML, search the web for 'HTML tutorial'. If you understand German, I'd
+recommend <a href="http://www.selfhtml.org/">SELFHTML</a> by Stefan Münz</p>
+
+Example ends here //-->
+
+</body>
+</html>

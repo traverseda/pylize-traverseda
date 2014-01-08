@@ -1,0 +1,871 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2002-2005 Christopher Arndt
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+# standard library modules
+import getopt
+import math
+import os
+import re
+import shutil
+import sys
+import time
+import ConfigParser
+from cgi import escape as esc
+esq = lambda x: esc(x, 1)
+
+sys_libdir = '@datadir@'
+sys.path.insert(0, sys_libdir)
+
+# third-party modules
+try:
+    import em
+except ImportError:
+    print >>sys.stderr, "pylize now need the tempating module EmPy.\n" + \
+      "Get it from http://www.alcyone.com/software/empy/"
+
+# program specific modules
+
+__progname__ = "pylize"
+__author__  = "Christopher Arndt"
+__version__ = "1.3b"
+__revision__ = "001"
+__date__ = "2005-07-31"
+__license__ = "GPL"
+
+CONFIG_FILE = __progname__ + '.ini'
+
+__usage__ = """Usage: %(__progname__)s [OPTIONS] [ACTION]
+Version: %(__version__)s
+
+ACTIONS:
+    create          create a new presentation template from scratch
+                    and write it to the file 'all.html'
+                    (don't do anything else)
+    show            view the presentation in your browser
+
+Default action is to process the file 'all.html' in the current directory.
+
+OPTIONS:
+-e --expand-slides   process each slide with EmPy allowing to embed Python code
+-l --lang=<lang>     set language for internationalized strings
+-L --libdir=<dir>    add <dir> to searchpath for ini and template files
+-s --symlink         symlink auxiliary files instead of copying (only Unix)
+-t --template=<name> use template <name> for your presentation
+-v --verbose         print internal values used for the generation of slides
+"""
+
+# -----------------------------------------------------------------------------
+def warn(*args):
+    sys.stderr.write(" ".join(map(str, args)) + '\n')
+
+# -----------------------------------------------------------------------------
+def usage(d = vars()):
+    warn(__usage__ % d)
+
+# -----------------------------------------------------------------------------
+def condense(s):
+    s = s.strip()
+    s = s.replace('\n', ' ')
+    s = s.replace('\r', ' ')
+    return re.sub(' +', ' ', s)
+
+# -----------------------------------------------------------------------------
+def reverseList(l):
+    return [l[i] for i in xrange(len(l)-1, -1, -1)]
+
+# -----------------------------------------------------------------------------
+def updateDefaults(a, b):
+    for k in b.keys():
+        a.setdefault(k, b[k])
+
+# -----------------------------------------------------------------------------
+def mkLink(url, text=None, **kw):
+    s = ['<a href="%s"' % url]
+    if kw.get('accesskey') is not None:
+        if kw.get('title'):
+            kw['title'] += ' [A-%s]' % kw['accesskey']
+        else:
+            kw['title'] = 'A-%s' % kw['accesskey']
+    for attr in ['target', 'accesskey', 'title', 'tabindex', 'name', 'id',
+      'class']:
+        try:
+            s.append(' %s="%s"' % (attr, esq(kw[attr])))
+        except: pass
+    s.append('>%s</a>' % text or url)
+    return "".join(s)
+
+# -----------------------------------------------------------------------------
+def mkLogoLink(meta):
+    if meta.has_key('logo'):
+        try:
+            import Image
+            if os.path.exists(meta['logo']):
+                i = Image.open(meta['logo'])
+            else:
+                import urllib, cStringIO
+                i = Image.open(cStringIO.StringIO(
+                  urllib.urlopen(meta['logo']).read())
+                )
+            size = ' width="%s" height="%s"' % i.size
+        except:
+            size = ""
+        logo_link = '<img src="%s" alt="%s" border="0"%s>' % \
+          (meta['logo'], meta.get('logo_alt', "[logo]"), size)
+        if meta.get('url'):
+            logo_link = mkLink(meta['url'], logo_link)
+    else:
+        logo_link = "&nbsp;"
+    return logo_link
+
+# -----------------------------------------------------------------------------
+def mkOrgLink(meta):
+    if meta.has_key('url'):
+        return mkLink(meta['url'],
+          meta.get('org') or meta['url'])
+    else:
+        return meta.get('org', '')
+
+# -----------------------------------------------------------------------------
+def mkAuthorLink(meta):
+    if meta.has_key('email'):
+        return mkLink('mailto:' + meta['email'],
+          meta.get('author', meta['email']), title=meta['email'])
+    else:
+        return meta.get('author', '')
+
+# -----------------------------------------------------------------------------
+def mkNavBar(links):
+    l = ['<table class="nav-links">\n <tr>']
+    for k in ['start', 'prev', 'toc', 'next', 'end']:
+        if links.get('link_' + k) is not None:
+            l.append('  <td class="%s">%s</td>' % ('link_' + k,
+              links['link_' + k][1] % links['link_' + k][0]))
+        else:
+            l.append('  <td class="%s">&nbsp;</td>' % ('link_' + k,))
+    l.append(' </tr>\n</table>')
+    return "\n".join(l)
+
+# -----------------------------------------------------------------------------
+_internalLinkRE = re.compile(r'(?i)(?s)<a.*?href="(#.*?)".*?>')
+def _substLink(m):
+    return m.group(0).replace(m.group(1), '%s.html' % m.group(1)[1:])
+
+def fixLinks(s):
+    return re.sub(_internalLinkRE, _substLink, s)
+
+# -----------------------------------------------------------------------------
+class error(Exception):
+    pass
+
+# -----------------------------------------------------------------------------
+class Template:
+    def __init__(self, file, **kwds):
+        self.file = file
+        self.source = self._read()
+        self.substitutions = kwds
+
+    def _read(self):
+        fp = open(self.file)
+        t = fp.read()
+        fp.close()
+        return t
+
+    def expand(self, subst=None):
+        env = self.substitutions.copy()
+        if subst: env.update(subst)
+        return em.expand(self.source, env)
+
+    def write(self, file, subst=None):
+        new = self.expand(subst)
+        if os.path.exists(file):
+            fp = open(file)
+            old = fp.read()
+            fp.close()
+            if new == old:
+                raise UserWarning, "File already up to date: %s" % file
+        fp = open(file, 'wb')
+        fp.write(new)
+        fp.close()
+
+# -----------------------------------------------------------------------------
+class Presentation:
+
+    def __init__(self, master=""):
+        if master:
+            self.master = master
+        else:
+            self.master = "all.html"
+        self.template = "default"
+        self.searchpath = "."
+        self.lang = None
+        self.progress_bar = 1
+        self.linklibfiles = 0
+        self.expand_slides = 0
+        self.meta = {}
+
+    def parseMaster(self, fn=""):
+        try:
+            f = open(fn or self.master)
+        except (IOError, OSError):
+            raise error, "Could not open master file: %s" % fn or self.master
+        else:
+            doc = f.read()
+            f.close()
+
+        rx = re.compile(r'''
+          <head.*?>(?P<head>.*)</head.*?>\s # header
+          <body.*?>(?P<body>.*)</body.*?>   # body
+          ''', re.I | re.S | re.X)
+
+        m = rx.search(doc)
+        if not m: return
+        self._head, self._body = m.groups(('head', 'body'))
+
+        m = re.search(r'(?s)(?i)<title.*?>(.*?)</title.*?>', self._head)
+        d = {}
+        if m:
+            d['title'] = condense(m.group(1))
+        try:
+            d['title'], d['subtitle'] = d['title'].split(' -- ', 1)
+        except:
+            d['subtitle'] = ''
+
+        if not self.meta:
+            self._getDefaults()
+        self._getMeta()
+        self.meta.update(d)
+        self._getSections()
+
+    def createMaster(self):
+        if not self.meta:
+            self._getDefaults()
+
+        template = self._findLibFile('all.tmpl')
+        if not template:
+            raise error, "Template file '%s' not found" % template
+
+        t = Template(template)
+        subst = {}
+        subst.update(self.meta)
+        subst['lang'] = self.lang
+        subst['date'] = time.strftime('%x', time.localtime(time.time()))
+        if subst.has_key('charset'):
+            subst['charset'] = \
+              '<meta http-equiv="Content-Type" content="text/html; charset=%s">' % \
+              self.meta['charset']
+        else:
+            subst['charset'] = \
+              '<!-- <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> -->'
+
+        try:
+            t.write(self.master, subst)
+        except UserWarning:
+            pass
+
+    def write(self):
+        if not hasattr(self, '_head'):
+            raise error, "You must first parse the master document."
+
+        if self.meta.get('date') == 'today':
+            self.meta['date'] = time.strftime('%x', time.localtime(time.time()))
+        elif self.meta.get('date') == 'last-modified':
+            self.meta['date'] = time.strftime('%x',
+              time.localtime(os.stat(self.master)[8]))
+        self.copyAux()
+
+        self.meta['logo_link'] = mkLogoLink(self.meta)
+        self.meta['org_link'] = mkOrgLink(self.meta)
+        self.meta['author_link'] = mkAuthorLink(self.meta)
+
+        self.writeKeyMap()
+        self.writeIndex()
+        self.writeTOC()
+        self.writePages()
+
+    def writeKeyMap(self):
+        s = ['var keymap = Array();']
+        for k in options:
+            if k.startswith('key_'):
+                s.append("keymap[%i] = '%s';" % (ord(options[k]), k[4:]))
+        fp = open('keymap.js', 'wb')
+        fp.write("\n".join(s))
+        fp.close()
+
+    def writeIndex(self):
+        template = self._findLibFile('index.tmpl')
+        if not template:
+            raise error, "Template file '%' not found" % template
+
+        t = Template(template)
+        subst = {}
+        subst.update(self.meta)
+        subst['header_title'] = self.meta['title']
+        subst['title'] = '<h1 class="title">%s</h1>' % self.meta['title']
+        if self.meta.get('subtitle'):
+            subst['subtitle'] = '<h2 class="subtitle"">%s</h2>' % \
+              self.meta['subtitle']
+            subst['header_title'] += ' - ' + self.meta['subtitle']
+        else:
+            subst['subtitle'] = ""
+        try:
+            t.write('index.html', subst)
+        except UserWarning:
+            pass
+
+    def writeTOC(self):
+        from roman import dec2roman
+        roman = lambda x: dec2roman(x).lower()
+
+
+        template = self._findLibFile(self.template + '.tmpl')
+        if not template:
+            raise error, "Template file '%s' not found" % template
+        t = Template(template)
+        subst = {}
+        subst.update(self.meta)
+
+        numTOCs = int(math.ceil(
+          len(self.sections) / float(self.meta['toc_num_sects'])))
+
+        for i in range(numTOCs):
+            subst['progress_bar'] = ""
+            subst['header_title'] = "%s: %s" % (self.meta['title'],
+              self.meta['toc'])
+            content = ""
+            heading = self.meta['toc']
+            nb = {}
+
+            if i > 0:
+                if i == 1: # the first toc page has always the same name
+                    prev = 'toc.html'
+                    title = self.meta['toc']
+                else:
+                    prev = 'toc_%s.html' % roman(i-1)
+                    title = "%s (%s)" % (self.meta['toc'], roman(i-1))
+                subst['rel_previous'] = \
+                  '<link rel="previous" href="%s" title="%s">' % (prev, title)
+                nb['link_prev'] = ('&lt;&lt;', mkLink(prev, '%s', title=title,
+                  accesskey=options['key_prev'], id="link_prev"))
+                subst['header_title'] += ' (%s)' % roman(i)
+                filename = 'toc_%s.html' % roman(i)
+                heading += ' (%s)' % roman(i)
+            else: # the first toc page
+                if self.abstract:
+                    content += \
+                      '<div class="abstract">\n<h3>%s</h3>\n%s</div>\n' % \
+                      (self.meta['abstract'], self.abstract)
+                subst['rel_previous'] = ""
+                nb['link_prev'] = None
+                filename = 'toc.html'
+
+            nb['link_toc'] = (self.meta['start_pres'], mkLink(
+              self._getSlideFilename(0), '%s', title=self.sections[0][0],
+              accesskey="s"))
+
+            if i < numTOCs-1:
+                next = 'toc_%s.html' % roman(i+1)
+                subst['rel_next'] = \
+                  '<link rel="next" href="%s" title="%s">' % \
+                  (next, self.meta['next'])
+                nb['link_next'] = ('&gt;&gt;', mkLink(
+                  next, '%s',
+                  title="%s (%s)" % (self.meta['toc'], roman(i+1)),
+                  accesskey=options['key_next'], id="link_next"))
+            else: # the last page of the TOC
+                subst['rel_next'] = \
+                  '<link rel="next" href="%s" title="%s">' % \
+                  (self._getSlideFilename(0), self.meta['next'])
+                nb['link_next'] = None
+            subst.update(nb)
+            subst['nav_buttons'] = mkNavBar(nb)
+            subst['pagetitle'] = "<h1>%s</h1>" % (self.meta['title'])
+            if self.meta.has_key('subtitle'):
+                subst['pagesubtitle'] = "<h2>%s</h2>" % (self.meta['subtitle'])
+            else:
+                subst['pagesubtitle'] = ""
+
+            content += '\n<div class="toc">\n'
+            content += '<h3>%s</h3>\n<ul class="toc-section">\n' % heading
+
+            start = i * int(self.meta['toc_num_sects'])
+            end = min(len(self.sections),
+              start + int(self.meta['toc_num_sects']))
+            # do the listing of section titles
+            for j in range(start, end):
+                pos = j+1-start
+                if j < len(self.sections):
+                    if pos <= 10:
+                        accesskey = str(pos % 10)
+                    else:
+                        accesskey = None
+                    # do we have a section with consecutive equal titles?
+                    if j > 0 and self.sections[j][0] == self.sections[j-1][0]:
+                        # start of new toc page -> repeat section title
+                        if j == start:
+                            content += '<li>%s (cont.)</li>\n' % \
+                              self.sections[j][0]
+                        # start new sub-list
+                        if j in [1, start] or self.sections[j][0] != \
+                          self.sections[j-2][0]:
+                            content += '<ul class="toc-subsection">\n'
+                        content += '<li>%s</li>\n' % mkLink(
+                          self._getSlideFilename(j),
+                          self.sections[j][1], accesskey=accesskey,
+                          tabindex=pos
+                        )
+                    else:
+                        content += '<li>%s</li>\n' % mkLink(
+                          self._getSlideFilename(j),
+                          self.sections[j][0], accesskey=accesskey,
+                          title=self.sections[j][1],
+                          tabindex=pos
+                        )
+                    if j > 0 and self.sections[j][0] == self.sections[j-1][0]:
+                        # end sub list
+                        if j == end - 1 or self.sections[j][0] != \
+                          self.sections[j+1][0]:
+                              content += '</ul>\n'
+
+            content += '</ul>\n</div>\n'
+
+            subst['content'] = content
+            try:
+                t.write(filename, subst)
+            except UserWarning:
+                pass
+
+    def writePages(self):
+        template = self._findLibFile(self.template + '.tmpl')
+        if not template:
+            raise error, "Template file '%s' not found" % template
+
+        for i in range(len(self.sections)):
+            t = Template(template)
+            subst = {}
+            subst.update(self.meta)
+            subst['progress_bar'] = self._mkProgressBar(i+1)
+            nb = self._mkNavLinks(i+1)
+            subst.update(nb)
+            subst['nav_buttons'] = mkNavBar(nb)
+            subst['header_title'] = self.meta['title'] + ': ' + \
+              self.sections[i][0]
+            if self.sections[i][2]:
+                subst['pagetitle'] = '<h1>%s</h1>' % self.sections[i][0]
+                subst['content'] = self._expandPage(fixLinks(self.sections[i][2]))
+            else:
+                # no text on this slide, put title centered on page
+                subst['pagetitle'] = ""
+                subst['content'] = self._expandPage(
+                  '<div class="section-title">\n  <h1>%s</h1>\n</div>' % \
+                  self.sections[i][0]
+                )
+
+            # <link rel> header tags
+            if i > 0:
+                subst['rel_previous'] = \
+                  '<link rel="previous" href="%s" title="%s">' % \
+                  (self._getSlideFilename(i), self.meta['previous'])
+            else: # the first page
+                subst['rel_previous'] = \
+                  '<link rel="previous" href="toc.html" title="%s">' % \
+                  (self.meta['previous'])
+
+            if i < len(self.sections)-1:
+                subst['rel_next'] = \
+                  '<link rel="next" href="%s" title="%s">' % \
+                  (self._getSlideFilename(i+1), self.meta['next'])
+            else: # the last page
+                subst['rel_next'] = ""
+
+            if self.sections[i][1]:
+                subst['pagesubtitle'] = "<h2>%s</h2>" % (self.sections[i][1])
+            else:
+                subst['pagesubtitle'] = ""
+
+            try:
+                t.write(self._getSlideFilename(i), subst)
+            except UserWarning:
+                pass
+
+    def setLang(self, lang):
+        d = readINI('lang_' + lang, self.searchpath)
+        self.meta.update(d)
+        self.lang = lang
+
+    def copyAux(self):
+        for file in ["css", self.meta.get('logo', 'logo.png'), 'icons',
+          'pylize.js']:
+            for d in self.searchpath:
+                src = os.path.join(d, file)
+                dst = file
+                if os.path.exists(src):
+                    if os.path.isdir(src):
+                        if not os.path.exists(dst):
+                            if self.linklibfiles and hasattr(os, 'symlink'):
+                                os.symlink(src,dst)
+                            else:
+                                os.mkdir(dst)
+                        if not os.path.islink(dst):
+                            for f in os.listdir(src):
+                                if not os.path.isdir(os.path.join(src, f)) and \
+                                  not os.path.exists(os.path.join(dst, f)):
+                                    shutil.copy(os.path.join(src, f),
+                                      os.path.join(dst, f))
+                    elif not os.path.exists(dst):
+                        if self.linklibfiles and hasattr(os, 'symlink'):
+                            os.symlink(src,dst)
+                        else:
+                            shutil.copy(src, dst)
+                    break
+            else:
+                warn("Could not find auxiliary file '%s'. "
+                  "Things might not work as expected!" % file)
+
+    def _findLibFile(self, base):
+        for d in self.searchpath:
+            libfile = os.path.join(d, base)
+            if os.path.exists(libfile):
+                return libfile
+        return None
+
+    def _getDefaults(self):
+        self.meta = readINI('defaults', self.searchpath)
+        self.setLang(getattr(self, 'lang') or 'en')
+
+    _attrRE = re.compile(r'(?i)(?s)\s+([\w-]+)="(.*?)"')
+
+    def _getMeta(self):
+        """Collects the name, content pairs from meta tags."""
+
+        meta = {}
+        meta_tags = re.findall(r'(?s)(?i)<meta.*?>', self._head)
+        for tag in meta_tags:
+            d = {}
+            for attr, attr_val in self._attrRE.findall(tag):
+                d[attr.lower()] = attr_val
+            if d.has_key('name'):
+                if d['name'][:7] == 'pylize.':
+                    meta[d['name'][7:]] = d['content']
+                else:
+                    meta[d['name']] = d['content']
+            if d.get('http-equiv') == 'Content-Type':
+                m = re.search(r'(?i)charset=(.*?)(;|$)', d['content'])
+                if m:
+                    meta['charset'] = m.group(1)
+        self.meta.update(meta)
+        if meta.get('lang'):
+            self.setLang(meta['lang'])
+
+    _h1RE = re.compile(r'(?is)<h1.*?>(.*?)</h1.*?>')
+    _h2RE = re.compile(r'(?is)(<h2.*?>(.*?)</h2.*?>)')
+    _commentRE = \
+      re.compile(r'(?is)(<script.*?>\s*)?(<!--.*?(//)?-->)(\s*</script>)?')
+    _anchorRE = re.compile(r'(?is)\s*(<a.*?>)(.*?)</a>')
+
+    def _getSections(self):
+        """Splits the master document in sections at <h1> tags."""
+
+        # strip comments but keep JavaScript
+        def stripComments(match):
+            if match.group(0).startswith('<script'):
+                return match.group(0)
+            else:
+                return ''
+        body = self._commentRE.sub(stripComments, self._body).strip()
+        l = self._h1RE.split(body)
+        self.abstract = l[0]
+        sections = l[1:]
+        l = []
+        for i in range(0, len(sections), 2):
+            text = sections[i+1].strip()
+            m = self._h2RE.search(text)
+            if m:
+                subtitle = condense(m.group(2))
+                text = text.replace(m.group(1), "").strip()
+            else:
+                subtitle = ""
+            m = self._anchorRE.search(sections[i])
+            if m:
+                sections[i] = m.group(2)
+                for attr, attrval  in self._attrRE.findall(m.group(1)):
+                    if attr == 'name':
+                        sectName = attrval
+            else:
+                sectName = ''
+            l.append((condense(sections[i]), subtitle, text, sectName))
+        self.sections = l
+
+    def _getSlideFilename(self, i):
+        if 0 <= i < len(self.sections):
+            if len(self.sections[i]) > 3 and self.sections[i][3]:
+                return self.sections[i][3] + '.html'
+            return 'slide_%02i.html' % (i+1,)
+        raise IndexError, "Section number '%i' out of range." % i
+
+    def _mkProgressBar(self, page):
+        pcnt_done = page * 100 / len(self.sections)
+        pcnt_left = 100 - pcnt_done
+        if self.progress_bar:
+            l = r = "&nbsp;"
+            t = "%s %s %s" % (page, self.meta['page_of'], len(self.sections))
+            if pcnt_done > 50:
+                l = t
+            else:
+                r = t
+            if pcnt_done == 100:
+                r = ""
+            s =  """<table border="0" width="50%%" cellpadding="0"
+cellspacing="0" align="center">
+  <tr>
+    <td width="%s%%" class="pcnt-done">
+      %s
+    </td>
+    <td width="%s%%" class="pcnt-left">
+      %s
+    </td>
+  </tr>
+</table>""" % (pcnt_done, l, pcnt_left, r)
+        else:
+            s = "%s %s %s %s" % (self.meta['page'], page,
+              self.meta['page_of'], len(self.sections))
+        return s
+
+    def _mkNavLinks(self, page):
+        """Build text navigation links for the footer."""
+
+        d = {}
+        # link to first slide
+        if page > 2:
+            d['link_start'] = ("|&lt;&lt;", mkLink(
+              self._getSlideFilename(0), text='%s',
+              title="%s: %s" % (self.meta['start'],
+              self.sections[0][0]), accesskey=options['key_start'],
+              id="link_start"))
+        else: d['link_start'] = None
+
+        # link to previous slide
+        if page > 1:
+            d['link_prev'] = ("&lt;&lt;", mkLink(
+              self._getSlideFilename(page-2), '%s',
+              title="%s: %s" % (self.meta['previous'],
+              self.sections[page-2][0]), accesskey=options['key_prev'],
+              id="link_prev"))
+        else: d['link_prev'] = None
+
+        # link to the TOC
+        d['link_toc'] = (self.meta['toc_link'], mkLink(
+          'toc.html', '%s', title=self.meta['toc'], accesskey="t",
+          id="link_toc"))
+
+        # link to following slide
+        if page < len(self.sections):
+            d['link_next'] = ("&gt;&gt;", mkLink(
+              self._getSlideFilename(page), "%s",
+              title="%s: %s" % (self.meta['next'], self.sections[page][0]),
+              accesskey=options['key_next'], id="link_next"))
+        else: d['link_next'] = None
+
+        # link to last slide
+        if page < len(self.sections) - 1:
+            d['link_end'] = ("&gt;&gt;|", mkLink(
+              self._getSlideFilename(len(self.sections)-1), "%s",
+              title="%s: %s" % (self.meta['end'], self.sections[-1][0]),
+              accesskey=options['key_end'], id="link_end"))
+        else: d['link_end'] = None
+
+        return d
+
+    def _expandPage(self, text, env=None):
+        if self.expand_slides:
+            try:
+                subst = getattr(self, '_substitutions').copy()
+            except AttributeError:
+                subst = {}
+            if env:
+                subst.update(env)
+            text = em.expand(text, subst)
+            self._substitutions = subst
+        return text
+
+
+# -----------------------------------------------------------------------------
+def readINI(section, searchpath=["."]):
+    """Look for config file in every dir on searchpath and read it."""
+
+    d = {}
+    c = ConfigParser.ConfigParser()
+    c.read(map(os.path.join, reverseList(searchpath),
+      [CONFIG_FILE] * len(searchpath)))
+    if c.has_section(section):
+        for o in c.options(section):
+            d[o] = c.get(section, o)
+    return d
+
+# -----------------------------------------------------------------------------
+def printMeta(obj):
+    """Print meta data of obj to standard out for debugging purposes."""
+
+    keys = obj.meta.keys()
+    keys.sort()
+    for key in keys:
+        print "%s: %s" % (key, repr(obj.meta[key]))
+
+# -----------------------------------------------------------------------------
+def get_options(args):
+    """Parse command line options."""
+
+    try:
+        opts, args = getopt.getopt(args, 'vsel:L:t:', [
+          'verbose', '--symlink', 'lang=', 'libdir=', 'template=',
+          'expand-slides']
+        )
+    except getopt.error, exc:
+        warn(exc)
+        usage()
+        sys.exit(1)
+
+    cmdlOpts = {}
+    for o, a in opts:
+        if o in ['-l', '--lang']:
+            cmdlOpts['lang'] = a.lower()
+        elif o in ['-v', '--verbose']:
+            cmdlOpts['verbose'] = 1
+        elif o in ['-L', '--libdir']:
+            options['searchpath'].insert(0, a)
+            sys.path.insert(0, a)
+        elif o in ['-t', '--template']:
+            cmdlOpts['template'] = a
+        elif o in ['-s', '--symlink']:
+            cmdlOpts['linklibfiles'] = 1
+        elif o in ['-e', '--expand-slides']:
+            cmdlOpts['expand_slides'] = 1
+    return cmdlOpts, args
+
+# -----------------------------------------------------------------------------
+def create_master(pres):
+    """Create a new presentation master (temlate) in the current directory."""
+
+    if os.path.exists(pres.master):
+        warn("Presentation file '%s' already exists. Will not overwrite!\n" % \
+          pres.master)
+        return 1
+    else:
+        if not pres.lang and options.has_key('lang'):
+            pres.lang = options['lang']
+        if int(options['verbose']):
+            printMeta(pres)
+        pres.createMaster()
+
+# -----------------------------------------------------------------------------
+def show_presentation():
+    """Open the presentation (index.html) in the default web browser."""
+
+    if os.path.exists('index.html'):
+        import webbrowser
+        url = 'file://%s/index.html' % \
+          os.path.abspath(os.curdir)
+        warn("Opening '%s' ...\n" % url)
+        webbrowser.open(url)
+    else:
+        warn("Starting page 'index.html' not found.\n"
+          "Run 'pylize' at least once without arguments\n"
+          "(You must create a master file before that).\n")
+        usage()
+        return 1
+
+# -----------------------------------------------------------------------------
+def process_presentation(pres):
+    """Parse presentation master and create slides."""
+
+    try:
+        pres.parseMaster()
+        for opt in ('template', 'expand_slides', 'symlink', 'progress_bar'):
+            try:
+                setattr(pres, opt, int(options[opt]))
+            except ValueError:
+                setattr(pres, opt, options[opt])
+            except KeyError:
+                pass
+        if not pres.lang and options.has_key('lang'):
+            pres.setLang(options['lang'])
+        if int(options['verbose']):
+            printMeta(pres)
+        pres.write()
+    except error:
+        warn("Could not process the presentation file '%s'.\n"  % pres.master +
+          "Run 'pylize create' to create a template.\n")
+        usage()
+        return 1
+
+# -----------------------------------------------------------------------------
+def main(args):
+    """Parse options & configuration files and carry out requested action."""
+
+    global options
+
+    home = os.environ.get('HOME')
+    if not home:
+        try:
+            import pwd
+            home = pwd.getpwuid(os.geteuid())[5]
+        except:
+            home = os.getcwd()
+
+    # built-in defaults
+    options = {
+        'searchpath': [os.path.join(home, '.pylize'), sys_libdir],
+        'key_prev': 'p',
+        'key_next': 'n',
+        'key_toc': 't',
+        'key_start': 's',
+        'key_end': 'e',
+        'expand_slides': 1
+    }
+    cmdlOpts, args = get_options(args)
+    # overwritten by config file options
+    confOpts = readINI('options', options['searchpath'])
+    options.update(confOpts)
+    # overwritten by command line options
+    options.update(cmdlOpts)
+
+    try:
+        import locale
+        options['lang'] = locale.setlocale(locale.LC_ALL,
+          options.get('lang', ''))[:2]
+    except:
+        pass
+
+    pres = Presentation()
+    pres.searchpath = options['searchpath']
+
+    if args:
+        action = args.pop(0)
+        if action == "create":
+            ret = create_master(pres)
+        elif action == "show":
+            ret = show_presentation()
+        else:
+            usage()
+            ret = 1
+    else:
+        ret = process_presentation(pres)
+    return ret
+
+# -----------------------------------------------------------------------------
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

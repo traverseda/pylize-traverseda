@@ -1,0 +1,356 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <!-- If you use characters other than ASCII, you must specify the
+    charset you use (e.g. 'ISO-8859-1' for western european languages)
+    and uncomment the following meta tag -->
+  <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+
+  <!-- the language used for some strings like "Table of contents", the
+    navigation buttons, etc. -->
+  <meta name="pylize.lang" content="en">
+
+  <!-- Meta information for the presentation. Present on all pages -->
+
+  <!-- Author of presentation -->
+  <meta name="author" content="Christopher Arndt">
+
+  <!-- Date of document creation (should be filled in automatically) -->
+  <meta name="pylize.date" content="last-modified">
+
+  <!-- Email address (without 'mailto:') here -->
+  <meta name="pylize.email" content="chris.arndt@web.de">
+
+  <!-- Name of organisation (university, firm, community etc.) -->
+  <meta name="pylize.org" content="">
+
+  <!-- Url for the organisation -->
+  <meta name="pylize.url" content="http://www.chrisarndt.de">
+
+  <!-- URL of a logo to show in the page headers -->
+  <meta name="pylize.logo" content="logo_blau.png">
+
+  <!-- The title of your presentation; separate a subtitle -->
+  <!-- with two dashes enclosed in spaces -->
+  <title>pylize -- On-screen presentations made easy</title>
+
+  <!-- End of meta data -->
+
+  <link rel="stylesheet" type="text/css" title="Talk"
+    href="css/talk-summary.css">
+
+</head>
+<body>
+
+<p><strong>pylize</strong> is a Python script that makes the creation of
+on-screen presentations a matter of a few minutes. It generates a template
+master document, which you can edit with your favourite text or HTML
+editor. The master document is then processed by <strong>pylize</strong>
+to generate HTML files for every slide plus a file for the table of
+contents. You can view the presentation with any CSS-capable
+webbrowser.</p>
+
+<script type="text/javascript" language="JavaScript1.2">
+<!--
+document.write("<p><strong>Press the spacebar to go to the next slide!</strong></p>");
+//-->
+</script>
+
+<h1>Introduction</h1>
+
+<h2>What can pylize do for me?</h2>
+
+<p><strong>pylize</strong> is a presentation generation tool. Among its
+features are:</p>
+
+<ul class="fancy">
+    <li>generates a template master document</li>
+    <li>creates a set of HTML slides from the master
+      document</li>
+    <li>automatically creates the table of contents and
+      distributes it to serveral slides if necessary</li>
+    <li>a nice CSS driven slide layout, including logo,
+      navigation links, progress-bar etc.</li>
+    <li>easy navigation by accesskeys and single-key
+      presses (through JavaScript)
+    <li>easy changing of layout through
+      templates</li>
+    <li>all information for a presentation in one master
+      file, but configurable through a per-user options file</li>
+    <li>fully localized</li>
+</ul>
+
+
+<h1>Getting Started</h1>
+
+<h2>How to create a presentation</h2>
+
+<h3>Prerequisites</h3>
+
+<ul class="fancy">
+  <li><a href="http://www.python.org" target="_blank">Python</a> >= 2.x</li>
+  <li><a href="http://www.alcyone.com/software/empy/"
+  target="_blank">EmPy</a></li>
+  <li><a href="http://www.pythonware.com/products/pil/index.htm"
+  target="_blank">PIL</a> (optional)</li>
+</ul>
+
+<h3>Installation</h3>
+
+<p>After you <a href="#download" title="Go to the download page">downloaded</a>
+<strong>pylize</strong>, unpack the archive and change into the created directory, which is named something like <tt>pylize-X.Y</tt>. Choose between
+the two modes of installation:</p>
+
+<ul>
+  <li>As the superuser (root): <tt>python install.py [prefix]</tt></li>
+  <li>As a normal user: <tt>python install.py $HOME</tt></li>
+</ul>
+
+<h3>Creating a new presentation</h3>
+
+<ol>
+  <li>Create a new directory for your presentation.</li>
+  <li>Run <tt>pylize create</tt> in the new directory. This will produce
+    a file named <tt>all.html</tt>.</li>
+  <li>Edit this file to your liking. It is richly commented.</li>
+  <li>Rerun <strong>pylize</strong> without arguments to produce the
+    presentation files.</li>
+  <li>Open the file <tt>index.html</tt> in your Webbrowser (turn
+    JavaScript on). Voilà!</li>
+</ol>
+
+
+<h1>Master document structure</h1>
+<!-- This is an empty slide. The heading will be centered on the page -->
+
+<h1>Master document structure</h1>
+
+<h2>How to write slides</h2>
+
+<p>Everything before the first &lt;h1&gt; element is considered to be the
+abstract of your presentation. It is rendered with a heading depending on
+the language (i.e. 'Summary' in English) and is  enclosed in a &lt;div
+class="abstract"&gt; block. You can change it's  appearance in the
+stylesheet.<p>
+
+<p>Every slide should have a title and, optionally, a subtitle. You define
+them with a &lt;h1&gt; element, resp. &lt;h2&gt;. The input file (master
+document) is split into slides at every occurence of an &lt;h1&gt; element.
+<em>This means, for the  headings on your slide you have to use the
+&lt;h3&gt; element.</em><p>
+
+<p>Let's see an example:</p>
+
+<div class="literal-block">
+&lt;h1&gt;Master document structure&lt;/h1&gt;<br>
+&lt;h2&gt;My first slide, or: «Look, Ma, no hands!»&lt;/h2&gt;<br>
+<br>
+&lt;h3&gt;Please note:&lt;/h3&gt;<br>
+&lt;p&gt;Although the subtitle can appear anywhere between two &amp;lt;h1&amp;gt; elements,
+you should place it immediately after the preceding &amp;lt;h1&amp;gt; element,
+just to make things more readable.&lt;/p&gt;
+</div>
+
+<p>This will produce the following slide...</p>
+
+
+<h1>Master document structure</h1>
+
+<h2>My first slide, or: «Look, Ma, no hands!»</h2>
+
+<h3>Please note:</h3>
+
+<p>Although the subtitle can appear anywhere between two &lt;h1&gt; elements,
+you should place it immediately after the preceding &lt;h1&gt; element, just
+to make things more readable.</p>
+
+
+<h1>Master document structure</h1>
+
+<h2>Another Slide</h2>
+
+<h3>Some formattings</h3>
+
+<p>You can use the usual HTML formatting tags on your slide, just remember
+that the text should be viewable on the screen without scrolling.</p>
+
+<p>You can have:</p>
+<ul>
+  <li>bulleted lists</li>
+  <li>links to <a href="all.html" target="_blank">other documents</a></li>
+  <li><i>italic</i>, <b>bold</b> and <span style=
+    "color:red">coloured</span> text</li>
+  <li><span style="font-family:serif;font-size:x-large">other
+    fonts and sizes</span></li>
+  <li>and much more ...</li>
+</ul>
+
+
+<h1>Master document structure</h1>
+
+<h2>Testing delayed text</h2>
+
+<script type="text/javascript" language="JavaScript1.2">
+<!--
+document.writeln("<h3>Press the spacebar!</h3>");
+document.writeln("DHTML available?: " + DHTML + '<br>');
+document.writeln("DOM available?: " + DOM + '<br>');
+document.writeln("Netscape browser?: " + NS + '<br>');
+document.writeln("Microsoft browser?: " + MS + '<br>');
+document.writeln("Opera browser?: " + OP + '<br>');
+//-->
+</script>
+<noscript>
+<h3>JavaScript not enabled!</h3>
+
+<p>The demo on this page relies on JavaScript to show the following lines  one
+by one by pressing the spacebar. If JavaScript is unavailable, they are shown
+immediately.</p>
+
+</noscript>
+
+<div name="delayed" class="delayed">
+It appears....
+</div>
+<div name="delayed" class="delayed">
+that you are using
+</div>
+<div name="delayed" class="delayed">
+a webbrowser
+</div>
+<div name="delayed" class="delayed">
+that
+<script type="text/javascript" language="JavaScript1.2">
+<!--
+document.writeln("understands CSS 2.0 and JavaScript >= 1.2.")
+//-->
+</script>
+<noscript>
+does not understand CSS 2.0 and/or JavaScript.
+</noscript>
+</div>
+
+
+<h1>Master document structure</h1>
+
+<h2>Where to go from here?</h2>
+
+<p class="text" title="The paragraphs on this page have justified text and margins on each side.">Look into the template master document to understand the
+overall document structure. You have to edit a few meta tags in the header of
+this HTML file to set the title and subtitle of your presentation, the author,
+date and a few more things. These settings are accompanied by explanatory
+comments so you should find your way round quickly.<p>
+
+<p class="text">You can also see the <a href="all.html"
+target="_blank">master document</a> for this presentation. As you can see,
+it also serves as a condensed summary of your presentation.<p>
+
+<p class="text">These examples should get you started. If you want
+to learn more about HTML, search the web for 'HTML&nbsp;tutorial'. If you
+know German, I'd recommend <a href="http://selfaktuell.teamone.de/"
+target="_blank">SELFHTML</a> by Stefan Münz.<p>
+
+<p class="text">Now you probably can't wait to lay your hands on
+<strong>pylize</strong>...</p>
+
+
+<h1><a name="download">Download</a></h1>
+
+<h2>Where to get pylize</h2>
+
+<p>You can download the latest version of <strong>pylize</strong> from
+this location:</p>
+
+<div style="margin-left:2em;"><a href=
+"http://www.chrisarndt.de/software/pylize/download/" target=
+"_blank">http://www.chrisarndt.de/software/pylize/download/</a></div>
+
+<p>For questions, comments or suggestions you can write the author at:</p>
+
+<div style="margin-left:2em;"><a
+href="mailto:chris.arndt@web.de">chris.arndt@web.de</a></div>
+
+<p>By the way, <strong>pylize</strong> is released under the <a
+href="http://www.gnu.org/licenses/gpl.html" target="_blank">GPL</a>, which
+basically means,  you are free to use, modify and distribute the software,
+as long as you make your changes available under the GPL too.<p>
+
+
+<h1>Credits</h1>
+
+<p>pylize is a Python-clone of:</p>
+
+<p>PLies &lt;<a
+href="http://www.rot13.org/~dpavlin/presentations/XLSies_to_PLies/" target=
+"_blank">http://www.rot13.org/~dpavlin/presentations/XLSies_to_PLies/</a>&gt; (sic!)
+<br>by Dobrica Pavlinusic</p>
+
+<p>which is in turn inspired by:</p>
+
+<p>XSLies &lt;<a href="http://lempinen.net/sami/xslies/"
+target="_blank">http://lempinen.net/sami/xslies/</a>&gt;
+<br>by Sami Lempinen</p>
+
+<p>and:</p>
+
+<p>W3C SlideMaker &lt;<a href="http://www.w3.org/Talks/slidemaker/YYMMsub/"
+target="_blank">http://www.w3.org/Talks/slidemaker/YYMMsub/</a>&gt;
+<br>by Stephan Montigaud, Pierre Fillault and  Masayasu Ishikawa
+</p>
+
+<h1>Thank you for your attention!</h1>
+
+<!-- Now comes some testing stuff. Uncomment and reprocess to try it
+
+<h1>Section a</h1>
+
+
+<h1>Section a</h1>
+
+<h2>To b done...</h2>
+Write something important here...
+
+
+<h1>Section a</h1>
+
+<h2>To c done...</h2>
+Write something more important here...
+
+
+<h1>Section a</h1>
+
+<h2>To d done...</h2>
+Write something really essential here...
+
+
+<h1>Section b</h1>
+
+
+<h1>Section b</h1>
+
+<h2>Subsection ba</h2>
+Humpty dumpty sat on a wall
+
+
+<h1>Section b</h1>
+
+<h2>Subsection bb</h2>
+Humpty dumpty had a great fall
+
+
+<h1>Section b</h1>
+
+<h2>Subsection bc</h2>
+and all the kings horses<br>
+and all the kings men
+
+<h1>Section b</h1>
+
+<h2>Subsection bd</h2>
+Couldn't put Humpty dumpty together again
+
+//-->
+
+</body>
+</html>
